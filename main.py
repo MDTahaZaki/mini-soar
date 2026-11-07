@@ -1,11 +1,21 @@
 """Mini-SOAR HTTP API."""
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from check_ip import get_ip_report
 
 app = FastAPI(title="Mini-SOAR API")
+
+# Wide-open CORS so a browser frontend on any origin can call the API.
+# Tighten allow_origins before exposing this beyond local development.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class ScanRequest(BaseModel):

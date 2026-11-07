@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini-SOAR Threat Intel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="terminal">
+        <header>
+            <h1>Mini-SOAR Threat Intel</h1>
+            <p class="subtitle">&gt; IP reputation lookup // VirusTotal + AbuseIPDB</p>
+        </header>
+
+        <form id="scan-form" class="scan-form" autocomplete="off">
+            <label for="ip-input" class="prompt">root@mini-soar:~$</label>
+            <input
+                type="text"
+                id="ip-input"
+                name="ip"
+                placeholder="enter IP address, e.g. 8.8.8.8"
+                spellcheck="false"
+                required
+            >
+            <button type="submit" id="scan-btn">Scan</button>
+        </form>
+
+        <!-- Hidden until a scan returns; populated by script.js -->
+        <div id="results" class="results hidden"></div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

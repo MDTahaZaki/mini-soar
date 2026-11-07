@@ -34,6 +34,11 @@ FastAPI app. Run: `venv/bin/uvicorn main:app` (default port 8000).
 - `POST /scan` with body `{"ip": "8.8.8.8"}` → the `get_ip_report()` dict.
   - `ValueError` (invalid IP, or missing API keys) → 400; any other exception → 500; missing `ip` field → 422 (FastAPI validation).
   - Endpoint is a sync `def` so the blocking `requests` calls run in FastAPI's threadpool.
+- `CORSMiddleware` allows all origins, methods, and headers (fine for local dev; restrict `allow_origins` before deploying).
+
+### `frontend/`
+Static UI (`index.html`, `script.js`, `style.css`). `script.js` POSTs `{"ip": ...}` to `http://127.0.0.1:8000/scan`.
+Serve it on its own so `.env` isn't exposed: `python3 -m http.server 5500 --directory frontend` → http://127.0.0.1:5500 (backend must be running too).
 
 ## Status / history
 - 2026-11-05: `check_ip.py` created and verified working against live APIs (tested with 8.8.8.8 and an invalid input).
