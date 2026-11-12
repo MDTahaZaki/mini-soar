@@ -36,6 +36,13 @@ FastAPI app. Run: `venv/bin/uvicorn main:app` (default port 8000).
   - Endpoint is a sync `def` so the blocking `requests` calls run in FastAPI's threadpool.
 - `CORSMiddleware` allows all origins, methods, and headers (fine for local dev; restrict `allow_origins` before deploying).
 
+### `automation.py`
+Batch scanner. Run: `venv/bin/python automation.py`.
+
+- Reads `suspicious_ips.txt` (one IP per line; blank lines and `#` comments skipped).
+- For each IP: `get_ip_report()` → saves a `ScanHistory` row → if VT `malicious > 0` OR AbuseIPDB `score > 10`, POSTs a Markdown alert to `DISCORD_WEBHOOK_URL` (from `.env`).
+- Sleeps 15s between checks. Invalid IPs are logged and skipped; a failed Discord post is logged and doesn't stop the run.
+
 ### `frontend/`
 Static UI (`index.html`, `script.js`, `style.css`). `script.js` POSTs `{"ip": ...}` to `http://127.0.0.1:8000/scan`.
 Serve it on its own so `.env` isn't exposed: `python3 -m http.server 5500 --directory frontend` → http://127.0.0.1:5500 (backend must be running too).
