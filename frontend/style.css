@@ -140,3 +140,58 @@ h1 {
 .hidden {
     display: none;
 }
+
+/* Recent Scans table */
+.history {
+    margin-top: 40px;
+}
+
+.history h2 {
+    margin: 0 0 12px;
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 6px var(--green);
+}
+
+/* Lets the table scroll sideways on narrow screens instead of the page */
+.table-wrap {
+    overflow-x: auto;
+}
+
+#history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--green);
+    box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+}
+
+#history-table th,
+#history-table td {
+    padding: 10px 12px;
+    border: 1px solid var(--green-dim);
+    text-align: left;
+    white-space: nowrap;
+}
+
+#history-table th {
+    color: var(--bg);
+    background: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.85rem;
+}
+
+#history-table tbody tr:hover {
+    background: rgba(57, 255, 20, 0.08);
+}
+
+#history-table td.flagged {
+    color: var(--red);
+    text-shadow: 0 0 6px rgba(255, 56, 96, 0.6);
+}
+
+#history-table td.empty {
+    color: var(--green-dim);
+    text-align: center;
+}

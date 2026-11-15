@@ -1,7 +1,11 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./threat_intel.db"
+# Local runs use ./threat_intel.db; docker-compose sets DATABASE_URL to the
+# mounted /data volume so scan history survives container rebuilds.
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./threat_intel.db")
 
 # check_same_thread=False: FastAPI's sync endpoints run in a threadpool,
 # so a session may be used from a different thread than the one that created it.

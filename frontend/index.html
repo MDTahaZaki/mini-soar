@@ -28,6 +28,24 @@
 
         <!-- Hidden until a scan returns; populated by script.js -->
         <div id="results" class="results hidden"></div>
+
+        <section class="history">
+            <h2>&gt; Recent Scans</h2>
+            <div class="table-wrap">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>VT Malicious</th>
+                            <th>Abuse Score</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <!-- Rows populated by fetchHistory() in script.js -->
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
     </main>
 
     <script src="script.js"></script>

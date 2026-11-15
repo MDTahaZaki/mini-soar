@@ -1,8 +1,69 @@
 const API_URL = "http://127.0.0.1:8000/scan";
+const HISTORY_URL = "http://127.0.0.1:8000/history?limit=5";
 
 const ipInput = document.getElementById("ip-input");
 const scanBtn = document.getElementById("scan-btn");
 const resultsDiv = document.getElementById("results");
+const historyBody = document.querySelector("#history-table tbody");
+
+// Same thresholds automation.py uses to decide whether to alert.
+const VT_ALERT_THRESHOLD = 0;
+const ABUSE_ALERT_THRESHOLD = 10;
+
+// SQLite drops timezone info, so the API returns UTC timestamps without a
+// "Z". Without it, the browser would treat them as local time.
+function formatDate(isoString) {
+    const hasZone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(isoString);
+    const date = new Date(hasZone ? isoString : isoString + "Z");
+    return isNaN(date) ? isoString : date.toLocaleString();
+}
+
+function makeCell(value, flagged = false) {
+    const td = document.createElement("td");
+    // textContent (not innerHTML) so nothing from the API is parsed as HTML.
+    td.textContent = value ?? "N/A";
+    if (flagged) td.classList.add("flagged");
+    return td;
+}
+
+function showHistoryMessage(message) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "empty";
+    td.textContent = message;
+    tr.appendChild(td);
+    historyBody.replaceChildren(tr);
+}
+
+async function fetchHistory() {
+    try {
+        const response = await fetch(HISTORY_URL);
+        if (!response.ok) {
+            throw new Error(`Server returned ${response.status}`);
+        }
+
+        const scans = await response.json();
+        if (scans.length === 0) {
+            showHistoryMessage("No scans yet.");
+            return;
+        }
+
+        const rows = scans.map((scan) => {
+            const tr = document.createElement("tr");
+            tr.append(
+                makeCell(scan.ip_address),
+                makeCell(scan.vt_malicious, scan.vt_malicious > VT_ALERT_THRESHOLD),
+                makeCell(scan.abuse_score, scan.abuse_score > ABUSE_ALERT_THRESHOLD),
+                makeCell(formatDate(scan.scanned_at)),
+            );
+            return tr;
+        });
+        historyBody.replaceChildren(...rows);
+    } catch (error) {
+        showHistoryMessage(`Could not load history: ${error.message}`);
+    }
+}
 
 async function scanIP(event) {
     // The button is a form submit button; stop the page from reloading.
@@ -36,6 +97,9 @@ async function scanIP(event) {
 
         resultsDiv.textContent = JSON.stringify(data, null, 2);
         resultsDiv.classList.remove("hidden");
+
+        // The backend saved this scan, so refresh the table to include it.
+        fetchHistory();
     } catch (error) {
         // Network failures (API not running, CORS) land here too.
         alert(`Scan failed: ${error.message}`);
@@ -47,3 +111,6 @@ async function scanIP(event) {
 
 // Pressing Enter in the input also fires a click on the submit button.
 scanBtn.addEventListener("click", scanIP);
+
+// Load recent scans as soon as the page opens.
+document.addEventListener("DOMContentLoaded", fetchHistory);
