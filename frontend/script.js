@@ -4,7 +4,7 @@ const HISTORY_URL = "http://127.0.0.1:8000/history?limit=5";
 const ipInput = document.getElementById("ip-input");
 const scanBtn = document.getElementById("scan-btn");
 const resultsDiv = document.getElementById("results");
-const historyBody = document.querySelector("#history-table tbody");
+const historyBody = document.getElementById("history-body");
 
 // Same thresholds automation.py uses to decide whether to alert.
 const VT_ALERT_THRESHOLD = 0;
@@ -37,29 +37,31 @@ function showHistoryMessage(message) {
 }
 
 async function fetchHistory() {
+    const tbody = document.getElementById("history-body");
+    tbody.innerHTML = "";
+
     try {
         const response = await fetch(HISTORY_URL);
         if (!response.ok) {
             throw new Error(`Server returned ${response.status}`);
         }
 
-        const scans = await response.json();
-        if (scans.length === 0) {
+        const data = await response.json();
+        console.log(data);
+
+        if (data.length === 0) {
             showHistoryMessage("No scans yet.");
             return;
         }
 
-        const rows = scans.map((scan) => {
+        for (const item of data) {
             const tr = document.createElement("tr");
-            tr.append(
-                makeCell(scan.ip_address),
-                makeCell(scan.vt_malicious, scan.vt_malicious > VT_ALERT_THRESHOLD),
-                makeCell(scan.abuse_score, scan.abuse_score > ABUSE_ALERT_THRESHOLD),
-                makeCell(formatDate(scan.scanned_at)),
-            );
-            return tr;
-        });
-        historyBody.replaceChildren(...rows);
+            tr.appendChild(makeCell(item.ip_address));
+            tr.appendChild(makeCell(item.vt_malicious, item.vt_malicious > VT_ALERT_THRESHOLD));
+            tr.appendChild(makeCell(item.abuse_score, item.abuse_score > ABUSE_ALERT_THRESHOLD));
+            tr.appendChild(makeCell(formatDate(item.scanned_at)));
+            tbody.appendChild(tr);
+        }
     } catch (error) {
         showHistoryMessage(`Could not load history: ${error.message}`);
     }
