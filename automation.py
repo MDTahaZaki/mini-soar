@@ -1,9 +1,11 @@
-"""Batch-scan IPs from suspicious_ips.txt, save results, and alert Discord on hits.
+"""Extract IPs from sample_auth.log, scan them, save results, and alert Discord on hits.
 
 Run: venv/bin/python automation.py
 """
 
+import ipaddress
 import os
+import re
 import time
 
 import requests
@@ -13,20 +15,30 @@ from check_ip import get_ip_report
 from database import Base, SessionLocal, engine
 from models import ScanHistory
 
-IP_FILE = "suspicious_ips.txt"
+LOG_FILE = "sample_auth.log"
 SLEEP_SECONDS = 15  # pause between checks to respect API rate limits
-VT_THRESHOLD = 0  # alert if VT malicious count > this
-ABUSE_THRESHOLD = 10  # alert if AbuseIPDB score > this
+VT_THRESHOLD = 3  # alert if VT malicious count >= this
+ABUSE_THRESHOLD = 10  # alert if AbuseIPDB score >= this
 
 
-def read_ips(path):
-    """Return one IP per non-empty line, skipping '#' comment lines."""
-    with open(path, encoding="utf-8") as f:
-        return [
-            line.strip()
-            for line in f
-            if line.strip() and not line.strip().startswith("#")
-        ]
+# Dotted-quad pattern; out-of-range octets (e.g. 999.1.1.1) are rejected later
+# by get_ip_report()'s ipaddress validation.
+IPV4_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+
+
+def extract_ips(path):
+    """Return the set of unique IPv4 addresses found anywhere in the log file."""
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return set(IPV4_RE.findall(f.read()))
+
+
+def is_non_routable(ip):
+    """True for private, loopback, or link-local IPs (no point querying threat intel)."""
+    try:
+        addr = ipaddress.ip_address(ip)
+    except ValueError:
+        return False  # let get_ip_report() reject and report it
+    return addr.is_private or addr.is_loopback or addr.is_link_local
 
 
 def save_report(report):
@@ -46,7 +58,7 @@ def save_report(report):
 
 
 def is_threat(vt_malicious, abuse_score):
-    return (vt_malicious or 0) > VT_THRESHOLD or (abuse_score or 0) > ABUSE_THRESHOLD
+    return (vt_malicious or 0) >= VT_THRESHOLD or (abuse_score or 0) >= ABUSE_THRESHOLD
 
 
 def send_discord_alert(webhook_url, report):
@@ -82,13 +94,21 @@ def main():
     Base.metadata.create_all(bind=engine)  # ensure scan_history table exists
 
     try:
-        ips = read_ips(IP_FILE)
+        ips = extract_ips(LOG_FILE)
     except FileNotFoundError:
-        raise SystemExit(f"{IP_FILE} not found (one IP address per line).")
+        raise SystemExit(f"{LOG_FILE} not found.")
 
-    for i, ip in enumerate(ips):
-        if i > 0:
+    print(f"[info] Found {len(ips)} unique IPs in {LOG_FILE}")
+
+    scanned = 0
+    for ip in sorted(ips):
+        if is_non_routable(ip):
+            print(f"[skip] Private IP ignored: {ip}")
+            continue
+
+        if scanned > 0:
             time.sleep(SLEEP_SECONDS)
+        scanned += 1
 
         try:
             report = get_ip_report(ip)

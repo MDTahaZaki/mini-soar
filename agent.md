@@ -39,8 +39,8 @@ FastAPI app. Run: `venv/bin/uvicorn main:app` (default port 8000).
 ### `automation.py`
 Batch scanner. Run: `venv/bin/python automation.py`.
 
-- Reads `suspicious_ips.txt` (one IP per line; blank lines and `#` comments skipped).
-- For each IP: `get_ip_report()` → saves a `ScanHistory` row → if VT `malicious > 0` OR AbuseIPDB `score > 10`, POSTs a Markdown alert to `DISCORD_WEBHOOK_URL` (from `.env`).
+- Reads `sample_auth.log`, extracts IPv4 addresses with a regex into a `set()` (deduplicated), and prints the unique count. Private, loopback, and link-local IPs are skipped (no API call).
+- For each IP: `get_ip_report()` → saves a `ScanHistory` row → if VT `malicious >= 3` OR AbuseIPDB `score >= 10`, POSTs a Markdown alert to `DISCORD_WEBHOOK_URL` (from `.env`).
 - Sleeps 15s between checks. Invalid IPs are logged and skipped; a failed Discord post is logged and doesn't stop the run.
 
 ### `frontend/`
