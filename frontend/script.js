@@ -1,14 +1,37 @@
-const API_URL = "http://127.0.0.1:8000/scan";
-const HISTORY_URL = "http://127.0.0.1:8000/history?limit=5";
+const API_BASE = "http://127.0.0.1:8000";
+const HISTORY_URL = `${API_BASE}/history?limit=5`;
 
-const ipInput = document.getElementById("ip-input");
+// Per indicator type: endpoint, JSON body key, and input placeholder.
+const SCAN_TYPES = {
+    ip: {
+        url: `${API_BASE}/scan`,
+        key: "ip",
+        label: "IP address",
+        placeholder: "enter IP address, e.g. 8.8.8.8",
+    },
+    hash: {
+        url: `${API_BASE}/scan/hash`,
+        key: "hash",
+        label: "file hash",
+        placeholder: "enter MD5 / SHA1 / SHA256 hash",
+    },
+};
+
+const scanTypeSelect = document.getElementById("scan-type");
+const indicatorInput = document.getElementById("indicator-input");
 const scanBtn = document.getElementById("scan-btn");
 const resultsDiv = document.getElementById("results");
 const historyBody = document.getElementById("history-body");
 
-// Same thresholds automation.py uses to decide whether to alert.
-const VT_ALERT_THRESHOLD = 0;
-const ABUSE_ALERT_THRESHOLD = 10;
+// Same rule automation.py uses to send a Discord alert
+// (VT_THRESHOLD / ABUSE_THRESHOLD there) — keep the two in sync.
+const VT_ALERT_THRESHOLD = 3; // flag if VT malicious count >= this
+const ABUSE_ALERT_THRESHOLD = 10; // flag if AbuseIPDB score >= this
+
+function isAlert(item) {
+    return (item.vt_malicious ?? 0) >= VT_ALERT_THRESHOLD
+        || (item.abuse_score ?? 0) >= ABUSE_ALERT_THRESHOLD;
+}
 
 // SQLite drops timezone info, so the API returns UTC timestamps without a
 // "Z". Without it, the browser would treat them as local time.
@@ -18,18 +41,21 @@ function formatDate(isoString) {
     return isNaN(date) ? isoString : date.toLocaleString();
 }
 
-function makeCell(value, flagged = false) {
+function makeCell(value) {
     const td = document.createElement("td");
     // textContent (not innerHTML) so nothing from the API is parsed as HTML.
     td.textContent = value ?? "N/A";
-    if (flagged) td.classList.add("flagged");
     return td;
+}
+
+function shortenHash(hash) {
+    return hash.length > 20 ? `${hash.slice(0, 10)}…${hash.slice(-8)}` : hash;
 }
 
 function showHistoryMessage(message) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 4;
+    td.colSpan = 5;
     td.className = "empty";
     td.textContent = message;
     tr.appendChild(td);
@@ -56,9 +82,29 @@ async function fetchHistory() {
 
         for (const item of data) {
             const tr = document.createElement("tr");
-            tr.appendChild(makeCell(item.ip_address));
-            tr.appendChild(makeCell(item.vt_malicious, item.vt_malicious > VT_ALERT_THRESHOLD));
-            tr.appendChild(makeCell(item.abuse_score, item.abuse_score > ABUSE_ALERT_THRESHOLD));
+            // A row is either an IP scan (ip_address set) or a hash scan
+            // (hash_value set, ip_address null).
+            const isHash = !item.ip_address && !!item.hash_value;
+
+            const typeCell = makeCell(isHash ? "Hash" : "IP");
+            typeCell.classList.add("type");
+            tr.appendChild(typeCell);
+
+            if (isHash) {
+                // Full SHA256 is 64 chars; shorten it, keep the full value on hover.
+                const indicatorCell = makeCell(shortenHash(item.hash_value));
+                indicatorCell.title = item.hash_value;
+                tr.appendChild(indicatorCell);
+            } else {
+                tr.appendChild(makeCell(item.ip_address));
+            }
+
+            tr.appendChild(makeCell(item.vt_malicious));
+            // AbuseIPDB only checks IPs, so the score doesn't apply to hashes.
+            tr.appendChild(makeCell(isHash ? "—" : item.abuse_score));
+
+            // Whole row goes red when the scan would have triggered an alert.
+            if (isAlert(item)) tr.classList.add("flagged");
             tr.appendChild(makeCell(formatDate(item.scanned_at)));
             tbody.appendChild(tr);
         }
@@ -67,13 +113,14 @@ async function fetchHistory() {
     }
 }
 
-async function scanIP(event) {
+async function scanIndicator(event) {
     // The button is a form submit button; stop the page from reloading.
     event.preventDefault();
 
-    const ip = ipInput.value.trim();
-    if (!ip) {
-        alert("Please enter an IP address.");
+    const scanType = SCAN_TYPES[scanTypeSelect.value];
+    const value = indicatorInput.value.trim();
+    if (!value) {
+        alert(`Please enter a ${scanType.label}.`);
         return;
     }
 
@@ -81,10 +128,11 @@ async function scanIP(event) {
     scanBtn.textContent = "Scanning...";
 
     try {
-        const response = await fetch(API_URL, {
+        // Body is {"ip": value} for /scan or {"hash": value} for /scan/hash.
+        const response = await fetch(scanType.url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ip: ip }),
+            body: JSON.stringify({ [scanType.key]: value }),
         });
 
         const data = await response.json();
@@ -112,7 +160,13 @@ async function scanIP(event) {
 }
 
 // Pressing Enter in the input also fires a click on the submit button.
-scanBtn.addEventListener("click", scanIP);
+scanBtn.addEventListener("click", scanIndicator);
+
+// Swap the placeholder to match the selected indicator type.
+scanTypeSelect.addEventListener("change", () => {
+    indicatorInput.placeholder = SCAN_TYPES[scanTypeSelect.value].placeholder;
+    indicatorInput.focus();
+});
 
 // Load recent scans as soon as the page opens.
 document.addEventListener("DOMContentLoaded", fetchHistory);

@@ -27,6 +27,11 @@ Library module (no CLI). Usage: `from check_ip import get_ip_report; get_ip_repo
 - Each API call is wrapped independently: if one fails (rate limit, bad key), that source's entry becomes `{"error": "<message>"}` and the other result is still returned.
 - 15s request timeout.
 
+### `check_hash.py`
+Library module. `get_hash_report(file_hash) -> {"hash", "hash_type", "found", "malicious", "total_engines", "top_detections"}` via VirusTotal v3 `GET /api/v3/files/{hash}`.
+- Validates MD5/SHA1/SHA256 (hex, 32/40/64 chars) → `ValueError`; 404 → `found: False`; request failures → `{"error": ...}` in the dict.
+- `total_engines` excludes type-unsupported/timeout/failure engines; `top_detections` = first 3 malicious engines alphabetically.
+
 ### `main.py`
 FastAPI app. Run: `venv/bin/uvicorn main:app` (default port 8000).
 
@@ -34,6 +39,9 @@ FastAPI app. Run: `venv/bin/uvicorn main:app` (default port 8000).
 - `POST /scan` with body `{"ip": "8.8.8.8"}` → the `get_ip_report()` dict.
   - `ValueError` (invalid IP, or missing API keys) → 400; any other exception → 500; missing `ip` field → 422 (FastAPI validation).
   - Endpoint is a sync `def` so the blocking `requests` calls run in FastAPI's threadpool.
+- `POST /scan/hash` with body `{"hash": "<md5|sha1|sha256>"}` → the `get_hash_report()` dict; saves a `ScanHistory` row with `hash_value` set (`ip_address` NULL). Same 400/500/422 handling.
+- `GET /history?limit=N` → recent `ScanHistory` rows (IP and hash scans mixed).
+- Startup calls `database.init_db()`: `create_all` plus adding columns missing from older DBs (currently `hash_value`).
 - `CORSMiddleware` allows all origins, methods, and headers (fine for local dev; restrict `allow_origins` before deploying).
 
 ### `automation.py`

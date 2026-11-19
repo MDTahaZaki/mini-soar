@@ -73,7 +73,7 @@ h1 {
     white-space: nowrap;
 }
 
-#ip-input {
+#indicator-input {
     flex: 1 1 220px;
     min-width: 0;
     padding: 10px 12px;
@@ -85,11 +85,26 @@ h1 {
     outline: none;
 }
 
-#ip-input::placeholder {
+#indicator-input::placeholder {
     color: var(--green-dim);
 }
 
-#ip-input:focus {
+#indicator-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
+}
+
+#scan-type {
+    padding: 10px 12px;
+    background: var(--panel);
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+#scan-type:focus {
     border-color: var(--green);
     box-shadow: 0 0 8px rgba(57, 255, 20, 0.6);
 }
@@ -168,7 +183,7 @@ h1 {
 
 #history-table th,
 #history-table td {
-    padding: 10px 12px;
+    padding: 10px 9px;
     border: 1px solid var(--green-dim);
     text-align: left;
     white-space: nowrap;
@@ -186,7 +201,13 @@ h1 {
     background: rgba(57, 255, 20, 0.08);
 }
 
-#history-table td.flagged {
+/* Row matches the Discord alert rule (see isAlert() in script.js) */
+#history-table tbody tr.flagged,
+#history-table tbody tr.flagged:hover {
+    background: rgba(255, 56, 96, 0.1);
+}
+
+#history-table tbody tr.flagged td {
     color: var(--red);
     text-shadow: 0 0 6px rgba(255, 56, 96, 0.6);
 }
@@ -194,4 +215,10 @@ h1 {
 #history-table td.empty {
     color: var(--green-dim);
     text-align: center;
+}
+
+#history-table td.type {
+    color: var(--blue);
+    font-size: 0.85rem;
+    text-transform: uppercase;
 }

@@ -7,12 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
+from check_hash import get_hash_report
 from check_ip import get_ip_report
-from database import Base, engine, get_db
+from database import get_db, init_db
 from models import ScanHistory
 
-# Create tables (e.g. scan_history) if they don't exist yet.
-Base.metadata.create_all(bind=engine)
+# Create tables (e.g. scan_history) and add any newer columns if missing.
+init_db()
 
 app = FastAPI(title="Mini-SOAR API")
 
@@ -60,13 +61,40 @@ def scan(request: ScanRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
 
 
+class HashScanRequest(BaseModel):
+    hash: str
+
+
+@app.post("/scan/hash")
+def scan_hash(request: HashScanRequest, db: Session = Depends(get_db)):
+    try:
+        report = get_hash_report(request.hash)
+
+        # On a VT request failure, report has "error" and no "malicious",
+        # so vt_malicious is stored as NULL. abuse_score doesn't apply to hashes.
+        record = ScanHistory(
+            hash_value=report["hash"],
+            vt_malicious=report.get("malicious"),
+        )
+        db.add(record)
+        db.commit()
+
+        return report
+    except ValueError as e:
+        # Malformed hash, or VT_API_KEY missing from .env
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {e}")
+
+
 class ScanHistoryOut(BaseModel):
     """Response shape for a ScanHistory row (read from ORM attributes)."""
 
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    ip_address: str
+    ip_address: str | None  # None for hash scans
+    hash_value: str | None  # None for IP scans
     vt_malicious: int | None  # None if VirusTotal failed for that scan
     abuse_score: int | None  # None if AbuseIPDB failed for that scan
     scanned_at: datetime

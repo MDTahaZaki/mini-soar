@@ -12,7 +12,7 @@ import requests
 from dotenv import load_dotenv
 
 from check_ip import get_ip_report
-from database import Base, SessionLocal, engine
+from database import SessionLocal, init_db
 from models import ScanHistory
 
 LOG_FILE = "sample_auth.log"
@@ -91,7 +91,7 @@ def main():
     if not webhook_url:
         raise SystemExit("DISCORD_WEBHOOK_URL must be set in .env")
 
-    Base.metadata.create_all(bind=engine)  # ensure scan_history table exists
+    init_db()  # ensure scan_history table and columns exist
 
     try:
         ips = extract_ips(LOG_FILE)

@@ -10,15 +10,19 @@
     <main class="terminal">
         <header>
             <h1>Mini-SOAR Threat Intel</h1>
-            <p class="subtitle">&gt; IP reputation lookup // VirusTotal + AbuseIPDB</p>
+            <p class="subtitle">&gt; IP &amp; file hash reputation lookup // VirusTotal + AbuseIPDB</p>
         </header>
 
         <form id="scan-form" class="scan-form" autocomplete="off">
-            <label for="ip-input" class="prompt">root@mini-soar:~$</label>
+            <label for="indicator-input" class="prompt">root@mini-soar:~$</label>
+            <select id="scan-type" name="scan-type" aria-label="Indicator type">
+                <option value="ip" selected>IP Address</option>
+                <option value="hash">File Hash</option>
+            </select>
             <input
                 type="text"
-                id="ip-input"
-                name="ip"
+                id="indicator-input"
+                name="indicator"
                 placeholder="enter IP address, e.g. 8.8.8.8"
                 spellcheck="false"
                 required
@@ -35,7 +39,8 @@
                 <table id="history-table">
                     <thead>
                         <tr>
-                            <th>IP Address</th>
+                            <th>Type</th>
+                            <th>Indicator</th>
                             <th>VT Malicious</th>
                             <th>Abuse Score</th>
                             <th>Date</th>
