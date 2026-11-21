@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini-SOAR Threat Intel</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <main class="terminal">
@@ -50,6 +51,23 @@
                     <tbody id="history-body"></tbody>
                 </table>
             </div>
+            <button type="button" id="download-btn" class="download-btn" disabled>Download History</button>
+        </section>
+
+        <section class="analytics">
+            <h2>&gt; Analytics</h2>
+            <!-- Charts drawn by fetchAnalytics() in script.js -->
+            <div class="chart-grid">
+                <figure class="chart-card">
+                    <figcaption>Threat Verdicts</figcaption>
+                    <div class="chart-box"><canvas id="threatChart"></canvas></div>
+                </figure>
+                <figure class="chart-card">
+                    <figcaption>Scan Types</figcaption>
+                    <div class="chart-box"><canvas id="typeChart"></canvas></div>
+                </figure>
+            </div>
+            <p id="analytics-error" class="analytics-error hidden"></p>
         </section>
     </main>
 

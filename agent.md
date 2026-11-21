@@ -41,6 +41,7 @@ FastAPI app. Run: `venv/bin/uvicorn main:app` (default port 8000).
   - Endpoint is a sync `def` so the blocking `requests` calls run in FastAPI's threadpool.
 - `POST /scan/hash` with body `{"hash": "<md5|sha1|sha256>"}` → the `get_hash_report()` dict; saves a `ScanHistory` row with `hash_value` set (`ip_address` NULL). Same 400/500/422 handling.
 - `GET /history?limit=N` → recent `ScanHistory` rows (IP and hash scans mixed).
+- `GET /analytics` → `{total_scans, malicious_scans, clean_scans, ip_scans, hash_scans}` from one aggregate SQL query. Malicious = `vt_malicious >= 3`, clean = `vt_malicious < 3` (NULL counts as neither). Hash = `hash_value` set or `ip_address` length ≥ 40; IP = everything else.
 - Startup calls `database.init_db()`: `create_all` plus adding columns missing from older DBs (currently `hash_value`).
 - `CORSMiddleware` allows all origins, methods, and headers (fine for local dev; restrict `allow_origins` before deploying).
 
@@ -53,6 +54,7 @@ Batch scanner. Run: `venv/bin/python automation.py`.
 
 ### `frontend/`
 Static UI (`index.html`, `script.js`, `style.css`). `script.js` POSTs `{"ip": ...}` to `http://127.0.0.1:8000/scan`.
+`fetchAnalytics()` GETs `/analytics` and draws two Chart.js charts (`#threatChart` doughnut: malicious vs clean; `#typeChart` bar: IP vs hash). It runs on page load and after each scan, updating the existing chart objects in place. Chart.js 4.4.1 is loaded from the jsDelivr CDN.
 Serve it on its own so `.env` isn't exposed: `python3 -m http.server 5500 --directory frontend` → http://127.0.0.1:5500 (backend must be running too).
 
 ## Status / history

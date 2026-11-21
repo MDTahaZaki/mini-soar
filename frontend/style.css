@@ -222,3 +222,78 @@ h1 {
     font-size: 0.85rem;
     text-transform: uppercase;
 }
+
+/* Analytics charts */
+.analytics {
+    margin-top: 40px;
+}
+
+.analytics h2 {
+    margin: 0 0 12px;
+    font-size: 1.2rem;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 6px var(--green);
+}
+
+/* Side by side when there's room for two ~300px cards, stacked otherwise */
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 16px;
+}
+
+.chart-card {
+    margin: 0;
+    padding: 16px;
+    min-width: 0;
+    border: 1px solid var(--green);
+    background: var(--panel);
+    box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+}
+
+.chart-card figcaption {
+    margin-bottom: 12px;
+    color: var(--blue);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Chart.js sizes the canvas to this box (responsive + maintainAspectRatio: false) */
+.chart-box {
+    position: relative;
+    height: 260px;
+}
+
+.analytics-error {
+    margin: 12px 0 0;
+    color: var(--red);
+}
+
+/* Download History button, under the Recent Scans table */
+.download-btn {
+    margin-top: 12px;
+    padding: 8px 18px;
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font: inherit;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.download-btn:hover:not(:disabled),
+.download-btn:focus-visible {
+    background: var(--green);
+    color: var(--bg);
+    box-shadow: 0 0 12px var(--green);
+    outline: none;
+}
+
+.download-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

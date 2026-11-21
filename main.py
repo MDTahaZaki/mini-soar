@@ -5,6 +5,7 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy import and_, case, func, or_
 from sqlalchemy.orm import Session
 
 from check_hash import get_hash_report
@@ -98,6 +99,31 @@ class ScanHistoryOut(BaseModel):
     vt_malicious: int | None  # None if VirusTotal failed for that scan
     abuse_score: int | None  # None if AbuseIPDB failed for that scan
     scanned_at: datetime
+
+
+@app.get("/analytics")
+def analytics(db: Session = Depends(get_db)):
+    """Aggregate counts over all ScanHistory rows, computed in one SQL query."""
+    ip_len = func.length(ScanHistory.ip_address)
+    # /scan/hash stores the hash in hash_value (ip_address NULL), so a row is a
+    # hash scan if hash_value is set, or if a 40+ char value sits in ip_address.
+    is_hash = or_(ScanHistory.hash_value.isnot(None), ip_len >= 40)
+    is_ip = and_(ScanHistory.hash_value.is_(None), ip_len < 40)
+
+    def count_where(condition):
+        return func.coalesce(func.sum(case((condition, 1), else_=0)), 0)
+
+    row = db.query(
+        func.count(ScanHistory.id),
+        count_where(ScanHistory.vt_malicious >= 3),
+        # NULL vt_malicious means VirusTotal failed, so it's neither clean nor malicious.
+        count_where(ScanHistory.vt_malicious < 3),
+        count_where(is_ip),
+        count_where(is_hash),
+    ).one()
+
+    keys = ("total_scans", "malicious_scans", "clean_scans", "ip_scans", "hash_scans")
+    return dict(zip(keys, (int(v) for v in row)))
 
 
 @app.get("/history", response_model=list[ScanHistoryOut])
